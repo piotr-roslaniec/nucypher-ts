@@ -4,4 +4,4 @@ export type Base64EncodedBytes = string;
 
 export type Configuration = {
   readonly porterUri: string;
-}
+};
