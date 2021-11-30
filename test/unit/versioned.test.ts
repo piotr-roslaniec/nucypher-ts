@@ -27,8 +27,8 @@ class VersionedTest implements Versioned {
   }
 
   protected static getVersionHandler(): VersionHandler {
-    const oldVersionDeserializers = (): VersionedDeserializers<Versioned> => {
-      // Old deserializer just drops the first byte
+    const oldVersionDeserializers = (): VersionedDeserializers => {
+      // Old deserializer simply drops the first byte
       const deserializerV10 = (bytes: Uint8Array) => new VersionedTest(bytes.slice(1));
       return { 1: { 0: deserializerV10 as unknown as Deserializer } };
     };

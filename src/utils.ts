@@ -37,7 +37,7 @@ export const bytesEqual = (first: Uint8Array, second: Uint8Array): boolean =>
 export const split = (
   bytes: Uint8Array,
   size: number
-): [Uint8Array, Uint8Array] => {
+): readonly [Uint8Array, Uint8Array] => {
   if (size > bytes.length) {
     throw Error(`Index out of bounds: ${size}`);
   }
@@ -95,17 +95,6 @@ export const calculatePeriodDuration = (
   return futurePeriod - currentPeriod;
 };
 
-export const mergeWithoutUndefined = (
-  A: Record<string, any>,
-  B: Record<string, any>
-) => {
-  const res: Record<string, any> = {};
-  Object.keys({ ...A, ...B }).map((key) => {
-    res[key] = B[key] || A[key];
-  });
-  return res;
-};
-
 export const bytesArray = (n: number): Uint8Array => {
   const bytes = [];
   bytes.unshift(n & 255);
@@ -140,11 +129,12 @@ export const encodeVariableLengthMessage = (message: Uint8Array) => {
 
 export const decodeVariableLengthMessage = (
   bytes: Uint8Array
-): [Uint8Array, Uint8Array] => {
+): readonly [Uint8Array, Uint8Array] => {
   const [header, remainder1] = split(bytes, VARIABLE_HEADER_LENGTH);
   const messageLength = toNumber(header, false); // Is big-endian
   const [message, remainder2] = split(remainder1, messageLength);
   return [message, remainder2];
 };
 
-export const zip = (a: Array<any>, b: Array<any>) => a.map((k, i) => [k, b[i]]);
+export const zip = <A, B>(a: ReadonlyArray<A>, b: ReadonlyArray<B>): [A, B][] =>
+  a.map((a_v: A, a_i) => [a_v, b[a_i]]);

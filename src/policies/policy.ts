@@ -10,34 +10,44 @@ import { ChecksumAddress } from '../types';
 import { EncryptedTreasureMap, TreasureMap } from './collections';
 import { HRAC } from './hrac';
 
-export interface EnactedPolicy {
-  id: HRAC;
-  label: string;
-  policyKey: PublicKey;
-  encryptedTreasureMap: EncryptedTreasureMap;
-  revocationKit: RevocationKit;
-  aliceVerifyingKey: Uint8Array;
-  ursulas: Ursula[];
-}
+export type EnactedPolicy = {
+  readonly id: HRAC;
+  readonly label: string;
+  readonly policyKey: PublicKey;
+  readonly encryptedTreasureMap: EncryptedTreasureMap;
+  readonly revocationKit: RevocationKit;
+  readonly aliceVerifyingKey: Uint8Array;
+  readonly ursulas: readonly Ursula[];
+};
 
-export interface BlockchainPolicyParameters {
-  /** `RemoteBob` which represents the receiver of the encrypted messages **/
-  bob: RemoteBob;
+export type BlockchainPolicyParameters = {
+  /** `RemoteBob` which represents the receiver of the encrypted messages. **/
+  readonly bob: RemoteBob;
   /** Policy label **/
-  label: string;
+  readonly label: string;
   /** Policy threshold. "N" in the "N" of "N". **/
-  threshold: number;
+  readonly threshold: number;
   /** Policy shares. "M" in the "N" of "N". **/
-  shares: number;
-  /** Policy expiration date. If left blank, will be calculated from `paymentPeriods` **/
+  readonly shares: number;
+  /** Policy expiration date. If left blank, will be calculated from `paymentPeriods`. **/
   expiration?: Date;
-  /** Number of payment periods that the policy will be valid for. **/
-  paymentPeriods: number; // TODO: Make it optional and calculate from expiration if needed.
+  /** Number of payment periods that the policy will be valid for. If left blank, will be calculated from `expiration`. **/
+  paymentPeriods?: number;
   /** Policy value. Used to compensate Ursulas. If left blank, will be calculated from `rate`. **/
   value?: number;
   /** Fee rate to compensate Ursulas. If left blank, the global minimal rate will be fetched from staking contract instead. **/
   rate?: number;
-}
+};
+
+export type ValidatedPolicyParameters = Omit<
+  BlockchainPolicyParameters,
+  'expiration' | 'paymentPeriods' | 'value' | 'rate'
+> & {
+  expiration: Date;
+  paymentPeriods: number;
+  value: number;
+  rate: number;
+};
 
 export class BlockchainPolicy {
   public readonly hrac: HRAC;
@@ -46,9 +56,9 @@ export class BlockchainPolicy {
     private readonly publisher: Alice,
     private readonly label: string,
     private readonly expiration: Date,
-    private bob: RemoteBob,
-    private verifiedKFrags: VerifiedKeyFrag[],
-    private delegatingKey: PublicKey,
+    private readonly bob: RemoteBob,
+    private readonly verifiedKFrags: readonly VerifiedKeyFrag[],
+    private readonly delegatingKey: PublicKey,
     private readonly threshold: number,
     private readonly shares: number,
     private readonly value: number
@@ -63,11 +73,17 @@ export class BlockchainPolicy {
   public static calculateValue(
     shares: number,
     paymentPeriods: number,
-    value?: number,
-    rate?: number
+    maybeValue?: number,
+    maybeRate?: number
   ): number {
-    // Check for negative inputs
-    const inputs = { shares, paymentPeriods, value, rate };
+    // Check for negative parameters
+    // Rename some variables in order to have more understable error message.
+    const inputs = {
+      shares,
+      paymentPeriods,
+      value: maybeValue,
+      rate: maybeRate,
+    };
     for (const [inputName, inputValue] of Object.entries(inputs)) {
       if (inputValue && inputValue < 0) {
         throw Error(
@@ -76,18 +92,18 @@ export class BlockchainPolicy {
       }
     }
 
-    // Check for invalid policy parameters
-    const hasNoValue = value === undefined || value === 0;
-    const hasNoRate = rate === undefined || rate === 0;
+    // Check for missing parameters
+    const hasNoValue = maybeValue === undefined || maybeValue === 0;
+    const hasNoRate = maybeRate === undefined || maybeRate === 0;
     if (hasNoValue && hasNoRate) {
       throw Error(
-        `Either 'value' or 'rate'  must be provided for policy. Got value: ${value} and rate: ${rate}`
+        `Either 'value' or 'rate'  must be provided for policy. Got value: ${maybeValue} and rate: ${maybeRate}`
       );
     }
 
-    if (value === undefined) {
-      value = rate! * paymentPeriods * shares;
-    }
+    const value = maybeValue
+      ? maybeValue
+      : (maybeRate as number) * paymentPeriods * shares;
 
     const valuePerNode = Math.floor(value / shares);
     if (valuePerNode * shares !== value) {
@@ -105,10 +121,11 @@ export class BlockchainPolicy {
       );
     }
 
-    return value!;
+    // At this point, we are only interested in value
+    return value;
   }
 
-  public async publish(ursulas: ChecksumAddress[]): Promise<void> {
+  public async publish(ursulas: readonly ChecksumAddress[]): Promise<void> {
     const ownerAddress = await this.publisher.transactingPower.getAddress();
     await PolicyManagerAgent.createPolicy(
       this.publisher.transactingPower,
@@ -120,7 +137,7 @@ export class BlockchainPolicy {
     );
   }
 
-  public async enact(ursulas: Ursula[]): Promise<EnactedPolicy> {
+  public async enact(ursulas: readonly Ursula[]): Promise<EnactedPolicy> {
     const ursulaAddresses = ursulas.map((u) => u.checksumAddress);
     await this.publish(ursulaAddresses);
 

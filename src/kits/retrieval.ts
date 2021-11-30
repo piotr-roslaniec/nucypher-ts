@@ -16,7 +16,7 @@ export class RetrievalResult {
     return new RetrievalResult();
   }
 
-  public get addresses(): ChecksumAddress[] {
+  public get addresses(): readonly ChecksumAddress[] {
     return Object.keys(this.cFrags);
   }
 
@@ -27,12 +27,12 @@ export class RetrievalResult {
 }
 
 export class RetrievalKit implements Versioned {
-  private static BRAND = 'RKit';
-  private static VERSION: VersionTuple = [1, 0];
+  private static readonly BRAND = 'RKit';
+  private static readonly VERSION: VersionTuple = [1, 0];
 
   constructor(
-    public capsule: VerifiedCapsuleFrag,
-    public queriedAddresses: ChecksumAddress[]
+    public readonly capsule: VerifiedCapsuleFrag,
+    public readonly queriedAddresses: readonly ChecksumAddress[]
   ) {}
 
   private get header(): Uint8Array {

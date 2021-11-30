@@ -1,11 +1,11 @@
 import { ChecksumAddress } from '../types';
 
-interface Contracts {
-  NU: ChecksumAddress;
-  STAKINGESCROW: ChecksumAddress;
-  POLICYMANAGER: ChecksumAddress;
-  ADJUDICATOR: ChecksumAddress;
-}
+type Contracts = {
+  readonly NU: ChecksumAddress;
+  readonly STAKINGESCROW: ChecksumAddress;
+  readonly POLICYMANAGER: ChecksumAddress;
+  readonly ADJUDICATOR: ChecksumAddress;
+};
 
 const MAINNET: Contracts = {
   NU: '0x4fE83213D56308330EC302a8BD641f1d0113A4Cc',

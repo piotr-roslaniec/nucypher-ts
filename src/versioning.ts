@@ -2,33 +2,33 @@ import { fromBytes, numberToBytes, split, toBytes, toNumber } from './utils';
 
 export type Deserializer = <T extends Versioned>(bytes: Uint8Array) => T;
 
-export type VersionedDeserializers<T extends Versioned> = Record<
+export type VersionedDeserializers = Record<
   number,
   Record<number, Deserializer>
 >;
 
-export type VersionTuple = [number, number];
+export type VersionTuple = readonly [number, number];
 
-export interface VersionHandler {
-  brand: string;
-  version: VersionTuple;
-  currentVersionDeserializer: Deserializer;
+export type VersionHandler = {
+  readonly brand: string;
+  readonly version: VersionTuple;
+  readonly currentVersionDeserializer: Deserializer;
 
-  oldVersionDeserializers<T extends Versioned>(): VersionedDeserializers<T>;
-}
+  oldVersionDeserializers(): VersionedDeserializers;
+};
 
 export abstract class Versioned {
-  public static BRAND: string;
+  public static readonly BRAND: string;
 
-  public static VERSION: VersionTuple;
+  public static readonly VERSION: VersionTuple;
 
-  private static getVersionHandler: VersionHandler;
+  private static readonly getVersionHandler: VersionHandler;
 }
 
 export class VersionedParser {
-  private static VERSION_PART_LENGTH_BYTES = 2;
-  private static BRAND_LENGTH = 4;
-  private static HEADER_LENGTH =
+  private static readonly VERSION_PART_LENGTH_BYTES = 2;
+  private static readonly BRAND_LENGTH = 4;
+  private static readonly HEADER_LENGTH =
     2 * VersionedParser.VERSION_PART_LENGTH_BYTES +
     VersionedParser.BRAND_LENGTH;
 
@@ -52,11 +52,8 @@ export class VersionedParser {
     bytes: Uint8Array
   ): T {
     const { brand, version } = handler;
-    const [_actualBrand, actualVersion, payload] = this.parseHeader(
-      brand,
-      bytes
-    );
-    const selectedVersion = this.resolveVersion(version, actualVersion);
+    const { parsedVersion, payload } = this.parseHeader(brand, bytes);
+    const selectedVersion = this.resolveVersion(version, parsedVersion);
     const deserializer = this.getDeserializer(handler, selectedVersion);
     return deserializer(payload);
   }
@@ -64,19 +61,24 @@ export class VersionedParser {
   private static parseHeader(
     brand: string,
     bytes: Uint8Array
-  ): [string, VersionTuple, Uint8Array] {
+  ): { parsedBrand: string; parsedVersion: VersionTuple; payload: Uint8Array } {
     if (bytes.length < VersionedParser.HEADER_LENGTH) {
       throw new Error('Invalid header length');
     }
-    const [actualBrand, remainder1] = this.parseBrand(brand, bytes);
-    const [actualVersion, remainder2] = this.parseVersion(remainder1);
-    return [actualBrand, actualVersion, remainder2];
+    const [parsedBrand, remainder] = this.parseBrand(brand, bytes);
+    if (brand !== parsedBrand) {
+      throw new Error(
+        `Parsed brand doesn't match. Expected ${brand}, received ${parsedBrand}`
+      );
+    }
+    const [parsedVersion, payload] = this.parseVersion(remainder);
+    return { parsedBrand, parsedVersion, payload };
   }
 
   private static parseBrand(
     brand: string,
     bytes: Uint8Array
-  ): [string, Uint8Array] {
+  ): readonly [string, Uint8Array] {
     const [brandBytes, remainder] = split(bytes, VersionedParser.BRAND_LENGTH);
     const actualBrand = fromBytes(brandBytes);
     if (actualBrand !== brand) {
@@ -85,7 +87,9 @@ export class VersionedParser {
     return [actualBrand, remainder];
   }
 
-  private static parseVersion(bytes: Uint8Array): [VersionTuple, Uint8Array] {
+  private static parseVersion(
+    bytes: Uint8Array
+  ): readonly [VersionTuple, Uint8Array] {
     const [majorBytes, remainder1] = split(
       bytes,
       VersionedParser.VERSION_PART_LENGTH_BYTES
@@ -118,7 +122,7 @@ export class VersionedParser {
     return [major, minor];
   }
 
-  private static getDeserializer<T extends Versioned>(
+  private static getDeserializer(
     self: VersionHandler,
     version: VersionTuple
   ): Deserializer {

@@ -17,7 +17,9 @@ import { toBytes } from '../utils';
 import { KEYING_MATERIAL_BYTES_LENGTH } from './constants';
 
 export class TransactingPower {
-  private constructor(private web3Provider: ethers.providers.Web3Provider) {}
+  private constructor(
+    private readonly web3Provider: ethers.providers.Web3Provider
+  ) {}
 
   public static fromWeb3Provider(web3Provider: ethers.providers.Web3Provider) {
     return new TransactingPower(web3Provider);
@@ -37,7 +39,7 @@ export class TransactingPower {
 }
 
 export class DelegatingPower {
-  private secretKeyBytes: Uint8Array;
+  private readonly secretKeyBytes: Uint8Array;
 
   private constructor(secretKeyBytes: Uint8Array) {
     this.secretKeyBytes = secretKeyBytes;
@@ -54,12 +56,12 @@ export class DelegatingPower {
     threshold: number,
     shares: number
   ): {
-    delegatingKey: PublicKey;
-    verifiedKFrags: VerifiedKeyFrag[];
+    readonly delegatingKey: PublicKey;
+    readonly verifiedKFrags: readonly VerifiedKeyFrag[];
   } {
     const delegatingSecretKey = this.getSecretKeyFromLabel(label);
     const delegatingKey = delegatingSecretKey.publicKey();
-    const verifiedKFrags: VerifiedKeyFrag[] = generateKFrags(
+    const verifiedKFrags: readonly VerifiedKeyFrag[] = generateKFrags(
       delegatingSecretKey,
       receivingKey,
       signer,
@@ -103,16 +105,18 @@ abstract class CryptoPower {
   }
 
   public get publicKey(): PublicKey {
-    return this._publicKey!;
+    if (this._publicKey) {
+      return this._publicKey;
+    } else {
+      throw new Error('Power initialized without public key.');
+    }
   }
 
   protected get secretKey(): SecretKey {
     if (this._secretKey) {
       return this._secretKey;
     } else {
-      throw new Error(
-        'Power initialized with public key, secret key not present.'
-      );
+      throw new Error('Power initialized without secret key.');
     }
   }
 }

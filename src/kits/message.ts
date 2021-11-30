@@ -17,6 +17,11 @@ import {
 
 import { RetrievalKit, RetrievalResult } from './retrieval';
 
+/**
+ * MessageKit
+ *
+ * Contains a message encrypted for an intended recipient.
+ */
 export class MessageKit implements Versioned {
   private static readonly BRAND = 'MKit';
   private static readonly VERSION: VersionTuple = [1, 0];
@@ -46,14 +51,14 @@ export class MessageKit implements Versioned {
   }
 
   protected static getVersionHandler(): VersionHandler {
-    const oldVersionDeserializers = (): VersionedDeserializers<Versioned> => {
+    const oldVersionDeserializers = (): VersionedDeserializers => {
       return {};
     };
     const currentVersionDeserializer: Deserializer = <T extends Versioned>(
       bytes: Uint8Array
     ): T => {
       const [capsule, remainder] = split(bytes, CAPSULE_LENGTH);
-      const [ciphertext, _] = decodeVariableLengthMessage(remainder);
+      const ciphertext = decodeVariableLengthMessage(remainder)[0];
       return new MessageKit(
         Capsule.fromBytes(capsule),
         ciphertext
@@ -89,10 +94,10 @@ export class MessageKit implements Versioned {
 
 export class PolicyMessageKit {
   constructor(
-    public policyEncryptingKey: PublicKey,
-    private threshold: number,
-    private result: RetrievalResult,
-    private messageKit: MessageKit
+    public readonly policyEncryptingKey: PublicKey,
+    private readonly threshold: number,
+    private readonly result: RetrievalResult,
+    private readonly messageKit: MessageKit
   ) {}
 
   public static fromMessageKit(
@@ -120,9 +125,13 @@ export class PolicyMessageKit {
         ? capsuleWithFrags.withCFrag(cFrag)
         : capsule.withCFrag(cFrag);
     });
+    // Using assertions here as a work-around for:
+    // https://github.com/nucypher/rust-umbral/issues/23
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (!capsuleWithFrags!) {
       throw 'Failed to attach any capsule fragments.';
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return capsuleWithFrags!;
   }
 

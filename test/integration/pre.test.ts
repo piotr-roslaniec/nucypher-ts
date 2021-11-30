@@ -1,9 +1,9 @@
 import { CapsuleFrag, reencrypt } from 'umbral-pre';
 
 import { Enrico, MessageKit } from '../../src';
+import { RetrievalResult } from '../../src/kits/retrieval';
 import { toBytes, zip } from '../../src/utils';
 import { mockAlice, mockBob, mockUrsulas, reencryptKFrags } from '../utils';
-import { RetrievalResult } from '../../src/kits/retrieval';
 
 describe('proxy reencryption', () => {
   const plaintext = toBytes('plaintext-message');

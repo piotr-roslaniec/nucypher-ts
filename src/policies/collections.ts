@@ -65,8 +65,8 @@ export class EncryptedKeyFrag {
   }
 
   public static take(bytes: Uint8Array): {
-    encryptedKeyFrag: EncryptedKeyFrag;
-    remainder: Uint8Array;
+    readonly encryptedKeyFrag: EncryptedKeyFrag;
+    readonly remainder: Uint8Array;
   } {
     const [capsuleBytes, remainder1] = split(bytes, CAPSULE_LENGTH);
     const [ciphertext, remainder] = decodeVariableLengthMessage(remainder1);
@@ -102,8 +102,8 @@ export class TreasureMap implements Versioned {
   public static async constructByPublisher(
     hrac: HRAC,
     publisher: Alice,
-    ursulas: Ursula[],
-    verifiedKFrags: VerifiedKeyFrag[],
+    ursulas: readonly Ursula[],
+    verifiedKFrags: readonly VerifiedKeyFrag[],
     threshold: number,
     policyEncryptingKey: PublicKey
   ): Promise<TreasureMap> {
@@ -138,7 +138,7 @@ export class TreasureMap implements Versioned {
   }
 
   protected static getVersionHandler(): VersionHandler {
-    const oldVersionDeserializers = (): VersionedDeserializers<Versioned> => {
+    const oldVersionDeserializers = (): VersionedDeserializers => {
       return {};
     };
     const currentVersionDeserializer: Deserializer = <T extends Versioned>(
@@ -179,8 +179,8 @@ export class TreasureMap implements Versioned {
   }
 
   private static makeDestinations(
-    ursulas: Ursula[],
-    verifiedKFrags: VerifiedKeyFrag[],
+    ursulas: readonly Ursula[],
+    verifiedKFrags: readonly VerifiedKeyFrag[],
     hrac: HRAC,
     publisher: Alice
   ): KFragDestinations {
@@ -350,7 +350,7 @@ export class AuthorizedTreasureMap implements Versioned {
   }
 
   protected static getVersionHandler(): VersionHandler {
-    const oldVersionDeserializers = (): VersionedDeserializers<Versioned> => {
+    const oldVersionDeserializers = (): VersionedDeserializers => {
       return {};
     };
     const currentVersionDeserializer: Deserializer = <T extends Versioned>(
@@ -443,12 +443,12 @@ export class EncryptedTreasureMap implements Versioned {
 export class RevocationOrder implements Versioned {
   private static readonly BRAND = 'Revo';
   private static readonly VERSION: VersionTuple = [1, 0];
-  private PREFIX: Uint8Array = toBytes('REVOKE-');
-  private signature?: Signature;
+  private readonly PREFIX: Uint8Array = toBytes('REVOKE-');
+  private readonly signature?: Signature;
 
   constructor(
-    private ursulaAddress: ChecksumAddress,
-    private encryptedKFrag: EncryptedKeyFrag,
+    private readonly ursulaAddress: ChecksumAddress,
+    private readonly encryptedKFrag: EncryptedKeyFrag,
     signer?: Signer,
     signature?: Signature
   ) {

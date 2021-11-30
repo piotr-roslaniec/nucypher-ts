@@ -17,7 +17,7 @@ export class PolicyManagerAgent {
     policyId: Uint8Array,
     valueInWei: number,
     expirationTimestamp: number,
-    nodeAddresses: Array<ChecksumAddress>,
+    nodeAddresses: readonly ChecksumAddress[],
     ownerAddress: ChecksumAddress
   ): Promise<ContractTransaction> {
     const PolicyManager = await this.connect(
@@ -40,7 +40,7 @@ export class PolicyManagerAgent {
       hexlify(policyId),
       ownerAddress,
       expirationTimestamp,
-      nodeAddresses,
+      nodeAddresses as ChecksumAddress[], // Must pass as mutable
       overrides
     );
     await tx.wait(DEFAULT_WAIT_N_CONFIRMATIONS);

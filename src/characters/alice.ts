@@ -12,14 +12,10 @@ import {
 import {
   BlockchainPolicy,
   BlockchainPolicyParameters,
-  EnactedPolicy,
+  ValidatedPolicyParameters,
 } from '../policies/policy';
 import { ChecksumAddress, Configuration } from '../types';
-import {
-  calculatePeriodDuration,
-  dateAtPeriod,
-  mergeWithoutUndefined,
-} from '../utils';
+import { calculatePeriodDuration, dateAtPeriod } from '../utils';
 
 import { RemoteBob } from './bob';
 import { Porter } from './porter';
@@ -79,10 +75,11 @@ export class Alice {
    * @param excludeUrsulas A list of Ursula's checksum addresses to be excluded
    */
   public async grant(
-    policyParameters: BlockchainPolicyParameters,
-    includeUrsulas?: ChecksumAddress[],
-    excludeUrsulas?: ChecksumAddress[]
+    rawParameters: BlockchainPolicyParameters,
+    includeUrsulas?: readonly ChecksumAddress[],
+    excludeUrsulas?: readonly ChecksumAddress[]
   ): Promise<Uint8Array> {
+    const policyParameters = await this.generatePolicyParameters(rawParameters);
     const ursulas = await this.porter.getUrsulas(
       policyParameters.shares,
       policyParameters.paymentPeriods,
@@ -100,8 +97,8 @@ export class Alice {
     threshold: number,
     shares: number
   ): {
-    delegatingKey: PublicKey;
-    verifiedKFrags: VerifiedKeyFrag[];
+    readonly delegatingKey: PublicKey;
+    readonly verifiedKFrags: readonly VerifiedKeyFrag[];
   } {
     return this.delegatingPower.generateKFrags(
       bob.decryptingKey,
@@ -113,10 +110,9 @@ export class Alice {
   }
 
   private async createPolicy(
-    rawParameters: BlockchainPolicyParameters
+    policyParams: ValidatedPolicyParameters
   ): Promise<BlockchainPolicy> {
-    const { bob, label, threshold, shares, expiration, value } =
-      await this.generatePolicyParameters(rawParameters);
+    const { bob, label, threshold, shares, expiration, value } = policyParams;
     const { delegatingKey, verifiedKFrags } = this.generateKFrags(
       bob,
       label,
@@ -126,88 +122,87 @@ export class Alice {
     return new BlockchainPolicy(
       this,
       label,
-      expiration!,
+      expiration,
       bob,
       verifiedKFrags,
       delegatingKey,
       threshold,
       shares,
-      value!
+      value
     );
   }
 
   private async generatePolicyParameters(
     rawParams: BlockchainPolicyParameters
-  ): Promise<BlockchainPolicyParameters> {
-    // Validate raw parameters
-    if (!rawParams.paymentPeriods && !rawParams.expiration) {
-      throw new Error(
-        "Policy end time must be specified as 'expiration' or 'paymentPeriods', got neither."
-      );
-    }
-
+  ): Promise<ValidatedPolicyParameters> {
     if (rawParams.threshold > rawParams.shares) {
       throw new Error('Threshold may not be greater than number of shares.');
     }
 
-    if (rawParams.expiration && rawParams.expiration < new Date(Date.now())) {
-      throw new Error(
-        `Expiration must be in the future: ${rawParams.expiration}).`
-      );
-    }
-
-    const blockNumber = await this.transactingPower.provider.getBlockNumber();
-    const block = await this.transactingPower.provider.getBlock(blockNumber);
-    const blockTime = new Date(block.timestamp * 1000);
-    if (rawParams.expiration && rawParams.expiration < blockTime) {
-      throw new Error(
-        `Expiration must be in the future (${rawParams.expiration} is earlier than block time ${blockTime}).`
-      );
-    }
-
-    // Generate new parameters when needed
     const secondsPerPeriod = await StakingEscrowAgent.getSecondsPerPeriod(
       this.transactingPower.provider
     );
-    if (rawParams.paymentPeriods) {
+
+    const makePaymentPeriods = async (): Promise<number> => {
+      if (!rawParams.paymentPeriods) {
+        if (!rawParams.expiration) {
+          throw new Error(
+            "Policy expiration be specified as 'expiration' or 'paymentPeriods', got neither."
+          );
+        }
+        // +1 will equal to number of all included periods
+        return (
+          calculatePeriodDuration(rawParams.expiration, secondsPerPeriod) + 1
+        );
+      }
+      return rawParams.paymentPeriods;
+    };
+    const paymentPeriods = await makePaymentPeriods();
+
+    const makeExpiration = async (): Promise<Date> => {
+      if (rawParams.expiration && rawParams.expiration < new Date(Date.now())) {
+        throw new Error(
+          `Expiration must be in the future: ${rawParams.expiration}).`
+        );
+      }
+
+      const blockNumber = await this.transactingPower.provider.getBlockNumber();
+      const block = await this.transactingPower.provider.getBlock(blockNumber);
+      const blockTime = new Date(block.timestamp * 1000);
+      if (rawParams.expiration && rawParams.expiration < blockTime) {
+        throw new Error(
+          `Expiration must be in the future (${rawParams.expiration} is earlier than block time ${blockTime}).`
+        );
+      }
+
       const currentPeriod = await StakingEscrowAgent.getCurrentPeriod(
         this.transactingPower.provider
       );
       const newExpiration = dateAtPeriod(
-        currentPeriod + rawParams.paymentPeriods,
+        currentPeriod + paymentPeriods,
         secondsPerPeriod,
         true
       );
       //  Get the last second of the target period
-      rawParams.expiration = new Date(newExpiration.getTime() - 1000);
-    } else {
-      // +1 will equal to number of all included periods
-      rawParams.paymentPeriods =
-        calculatePeriodDuration(rawParams.expiration!, secondsPerPeriod) + 1;
-    }
+      return new Date(newExpiration.getTime() - 1000);
+    };
+    const expiration = await makeExpiration();
 
-    if (!rawParams.rate && !rawParams.value) {
-      rawParams.rate = await PolicyManagerAgent.getGlobalMinRate(
-        this.transactingPower.provider
-      );
-    }
+    const rate = rawParams.rate
+      ? rawParams.rate
+      : await PolicyManagerAgent.getGlobalMinRate(
+          this.transactingPower.provider
+        );
 
-    rawParams.value = BlockchainPolicy.calculateValue(
+    const value = BlockchainPolicy.calculateValue(
       rawParams.shares,
-      rawParams.paymentPeriods!,
+      paymentPeriods,
       rawParams.value,
-      rawParams.rate
+      rate
     );
 
-    // These values may have been recalculated in this block time.
-    const policyEndTime = {
-      paymentPeriods: rawParams.paymentPeriods,
-      expiration: rawParams.expiration,
-    };
-    return mergeWithoutUndefined(
-      rawParams,
-      policyEndTime
-    ) as BlockchainPolicyParameters;
+    // We update update rate for posterity
+    return { ...rawParams, paymentPeriods, expiration, value, rate };
   }
 
   public async revoke(policyId: Uint8Array) {

@@ -4,7 +4,7 @@ import { RevocationOrder, TreasureMap } from '../policies/collections';
 import { ChecksumAddress } from '../types';
 
 export class RevocationKit {
-  public revocations: Record<ChecksumAddress, RevocationOrder>;
+  public readonly revocations: Record<ChecksumAddress, RevocationOrder>;
 
   constructor(treasureMap: TreasureMap, signer: Signer) {
     this.revocations = {};

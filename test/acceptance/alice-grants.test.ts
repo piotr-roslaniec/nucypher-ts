@@ -34,7 +34,7 @@ describe('story: alice shares message with bob through policy', () => {
 
   // Intermediate variables used for mocking
   let encryptedTreasureMap: EncryptedTreasureMap;
-  let verifiedKFrags: VerifiedKeyFrag[];
+  let verifiedKFrags: readonly VerifiedKeyFrag[];
   let ursulaAddresses: ChecksumAddress[];
   let policy: EnactedPolicy;
 

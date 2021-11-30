@@ -164,7 +164,7 @@ export const mockPublishToBlockchain = () => {
 
 export const mockCFragResponse = (
   ursulas: ChecksumAddress[],
-  verifiedKFrags: VerifiedKeyFrag[],
+  verifiedKFrags: readonly VerifiedKeyFrag[],
   capsule: Capsule
 ): RetrieveCFragsResponse[] => {
   if (ursulas.length !== verifiedKFrags.length) {
@@ -182,7 +182,7 @@ export const mockCFragResponse = (
 
 export const mockRetrieveCFragsRequest = (
   ursulas: ChecksumAddress[],
-  verifiedKFrags: VerifiedKeyFrag[],
+  verifiedKFrags: readonly VerifiedKeyFrag[],
   capsule: Capsule
 ) => {
   const results = mockCFragResponse(ursulas, verifiedKFrags, capsule);
@@ -212,7 +212,7 @@ export const mockEncryptTreasureMap = () => {
 };
 
 export const reencryptKFrags = (
-  kFrags: VerifiedKeyFrag[],
+  kFrags: readonly VerifiedKeyFrag[],
   capsule: Capsule
 ): {
   capsuleWithFrags: CapsuleWithFrags;
