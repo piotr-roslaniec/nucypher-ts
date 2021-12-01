@@ -7,10 +7,7 @@ describe('message kit', () => {
     const bob = mockBob();
     const plaintext = toBytes('fake-message');
 
-    const messageKit = MessageKit.author(
-      bob.decryptingKey,
-      plaintext,
-    );
+    const messageKit = MessageKit.author(bob.decryptingKey, plaintext);
 
     const decrypted = (bob as any).decryptingPower.decrypt(messageKit);
     expect(decrypted).toBeTruthy();

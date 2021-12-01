@@ -16,11 +16,25 @@ describe('proxy reencryption', () => {
 
   it('verifies capsule frags', async () => {
     const { capsule } = MessageKit.author(bob.decryptingKey, plaintext);
-    const { delegatingKey, verifiedKFrags } = alice['generateKFrags'](bob, label, threshold, shares);
+    const { delegatingKey, verifiedKFrags } = alice['generateKFrags'](
+      bob,
+      label,
+      threshold,
+      shares
+    );
 
     const { verifiedCFrags } = reencryptKFrags(verifiedKFrags, capsule);
-    const cFrags = verifiedCFrags.map((verifiedCFrag) => CapsuleFrag.fromBytes(verifiedCFrag.toBytes()));
-    const areVerified = cFrags.every((cFrag) => cFrag.verify(capsule, alice.verifyingKey, delegatingKey, bob.decryptingKey));
+    const cFrags = verifiedCFrags.map((verifiedCFrag) =>
+      CapsuleFrag.fromBytes(verifiedCFrag.toBytes())
+    );
+    const areVerified = cFrags.every((cFrag) =>
+      cFrag.verify(
+        capsule,
+        alice.verifyingKey,
+        delegatingKey,
+        bob.decryptingKey
+      )
+    );
     expect(areVerified).toBeTruthy();
   });
 
@@ -29,19 +43,22 @@ describe('proxy reencryption', () => {
       bob,
       label,
       threshold,
-      shares,
+      shares
     );
 
     const policyEncryptingKey = await alice.getPolicyEncryptingKeyFromLabel(
-      label,
+      label
     );
     const enrico = new Enrico(policyEncryptingKey);
     const encryptedMessage = enrico.encryptMessage(plaintext);
 
     const ursulaAddresses = ursulas.map((ursula) => ursula.checksumAddress);
-    const reencrypted = verifiedKFrags
-      .map((kFrag) => reencrypt(encryptedMessage.capsule, kFrag));
-    const results = new RetrievalResult(Object.fromEntries(zip(ursulaAddresses, reencrypted)));
+    const reencrypted = verifiedKFrags.map((kFrag) =>
+      reencrypt(encryptedMessage.capsule, kFrag)
+    );
+    const results = new RetrievalResult(
+      Object.fromEntries(zip(ursulaAddresses, reencrypted))
+    );
     const policyMessageKit = encryptedMessage
       .asPolicyKit(policyEncryptingKey, threshold)
       .withResult(results);

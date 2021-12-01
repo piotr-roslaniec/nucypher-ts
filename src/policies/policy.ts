@@ -7,8 +7,8 @@ import { Ursula } from '../characters/porter';
 import { RevocationKit } from '../kits/revocation';
 import { ChecksumAddress } from '../types';
 
-import { EncryptedTreasureMap, TreasureMap } from './collections';
 import { HRAC } from './hrac';
+import { EncryptedTreasureMap, TreasureMap } from './treasure-map';
 
 export type EnactedPolicy = {
   readonly id: HRAC;

@@ -12,7 +12,6 @@ const setup = () => {
 };
 
 describe('signature', () => {
-
   it('verifies signature', () => {
     const { alice, plaintext } = setup();
     const signature = alice.signer.sign(plaintext);

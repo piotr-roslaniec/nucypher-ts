@@ -4,7 +4,7 @@ import { NucypherKeyring } from '../crypto/keyring';
 import { DecryptingPower, SigningPower } from '../crypto/powers';
 import { MessageKit, PolicyMessageKit } from '../kits/message';
 import { RetrievalResult } from '../kits/retrieval';
-import { EncryptedTreasureMap } from '../policies/collections';
+import { EncryptedTreasureMap } from '../policies/treasure-map';
 import { Configuration } from '../types';
 import { zip } from '../utils';
 

@@ -19,9 +19,9 @@ import {
   RetrieveCFragsResponse,
   Ursula,
 } from '../src/characters/porter';
-import { TreasureMap } from '../src/policies/collections';
 import { HRAC } from '../src/policies/hrac';
 import { BlockchainPolicy } from '../src/policies/policy';
+import { TreasureMap } from '../src/policies/treasure-map';
 import { ChecksumAddress, Configuration } from '../src/types';
 import { toBytes, zip } from '../src/utils';
 

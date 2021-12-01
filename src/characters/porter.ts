@@ -3,7 +3,7 @@ import qs from 'qs';
 import { CapsuleFrag, PublicKey } from 'umbral-pre';
 
 import { RetrievalKit } from '../kits/retrieval';
-import { TreasureMap } from '../policies/collections';
+import { TreasureMap } from '../policies/treasure-map';
 import { Base64EncodedBytes, ChecksumAddress, HexEncodedBytes } from '../types';
 import { fromBase64, toBase64, toHexString } from '../utils';
 

@@ -1,5 +1,12 @@
+import { SecretKey } from 'umbral-pre';
+
 import { MessageKit } from '../../src';
-import { AuthorizedKeyFrag, EncryptedKeyFrag, TreasureMap } from '../../src/policies/collections';
+import { HRAC } from '../../src/policies/hrac';
+import {
+  AuthorizedKeyFrag,
+  EncryptedKeyFrag,
+} from '../../src/policies/key-frag';
+import { TreasureMap } from '../../src/policies/treasure-map';
 import {
   decodeVariableLengthMessage,
   encodeVariableLengthMessage,
@@ -10,8 +17,6 @@ import {
   zip,
 } from '../../src/utils';
 import { mockAlice, mockBob, mockTreasureMap } from '../utils';
-import { HRAC } from '../../src/policies/hrac';
-import { SecretKey } from 'umbral-pre';
 
 const matches = (mk1: MessageKit, mk2: MessageKit) => {
   expect(mk1.capsule.toBytes()).toEqual(mk2.capsule.toBytes());
@@ -27,10 +32,10 @@ describe('serialization ', () => {
   });
 
   it('encodes and decodes a variable length message', () => {
-    const msg = new Uint8Array([ 0, 1, 2, 3, 4, 5 ]);
+    const msg = new Uint8Array([0, 1, 2, 3, 4, 5]);
 
     const encodedMsg = encodeVariableLengthMessage(msg);
-    const [ decodedMsg, remainder ] = decodeVariableLengthMessage(encodedMsg);
+    const [decodedMsg, remainder] = decodeVariableLengthMessage(encodedMsg);
 
     expect(decodedMsg).toEqual(msg);
     expect(remainder).toEqual(new Uint8Array());
@@ -39,7 +44,7 @@ describe('serialization ', () => {
   it('encodes and decodes a message kit', () => {
     const messageKit = MessageKit.author(
       mockBob().decryptingKey,
-      toBytes('fake-message'),
+      toBytes('fake-message')
     );
 
     const encoded = messageKit.toBytes();
@@ -49,13 +54,13 @@ describe('serialization ', () => {
   });
 
   it('splits bytes', async () => {
-    const bytes = new Uint8Array([ 0, 0, 1, 1 ]);
+    const bytes = new Uint8Array([0, 0, 1, 1]);
 
-    const [ zeroes, ones ] = split(bytes, 2);
-    expect(zeroes).toEqual(new Uint8Array([ 0, 0 ]));
-    expect(ones).toEqual(new Uint8Array([ 1, 1 ]));
+    const [zeroes, ones] = split(bytes, 2);
+    expect(zeroes).toEqual(new Uint8Array([0, 0]));
+    expect(ones).toEqual(new Uint8Array([1, 1]));
 
-    const [ all, none ] = split(bytes, bytes.length);
+    const [all, none] = split(bytes, bytes.length);
     expect(all).toEqual(bytes);
     expect(none).toEqual(new Uint8Array([]));
 
@@ -68,15 +73,23 @@ describe('serialization ', () => {
     const alice = mockAlice();
     const bob = mockBob();
     const { verifiedKFrags } = alice['generateKFrags'](bob, label, 1, 1);
-    const hrac = HRAC.derive(alice.verifyingKey.toBytes(), bob.verifyingKey.toBytes(), label);
-    const authorizedKFrag = AuthorizedKeyFrag.constructByPublisher(alice.signer, hrac, verifiedKFrags[0]);
+    const hrac = HRAC.derive(
+      alice.verifyingKey.toBytes(),
+      bob.verifyingKey.toBytes(),
+      label
+    );
+    const authorizedKFrag = AuthorizedKeyFrag.constructByPublisher(
+      alice.signer,
+      hrac,
+      verifiedKFrags[0]
+    );
 
     const encryptedKFrag = EncryptedKeyFrag.author(
       bob.decryptingKey,
-      authorizedKFrag,
+      authorizedKFrag
     );
     const address = '0x0000000000000000000000000000000000000000';
-    const destinations = Object.fromEntries([ [ address, encryptedKFrag ] ]);
+    const destinations = Object.fromEntries([[address, encryptedKFrag]]);
 
     const encoded = TreasureMap['nodesToBytes'](destinations);
     const decoded = TreasureMap['bytesToNodes'](encoded);
@@ -95,8 +108,11 @@ describe('serialization ', () => {
     expect(decoded.threshold).toEqual(treasureMap.threshold);
     expect(decoded.hrac).toEqual(treasureMap.hrac);
 
-    const sortedKeys = zip(Object.keys(treasureMap.destinations).sort(), Object.keys(decoded.destinations).sort());
-    sortedKeys.forEach(([ k1, k2 ]) => {
+    const sortedKeys = zip(
+      Object.keys(treasureMap.destinations).sort(),
+      Object.keys(decoded.destinations).sort()
+    );
+    sortedKeys.forEach(([k1, k2]) => {
       expect(k1).toEqual(k2);
       const v1 = treasureMap.destinations[k1];
       const v2 = treasureMap.destinations[k2];
