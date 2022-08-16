@@ -46,6 +46,50 @@ Prepare a new release
 yarn run prepare-release
 ```
 
+## Publishing
+
+Publish a new release on NPM.
+
+Pay attention to output of these commands and fix your release if needed.
+
+### Regular Release
+
+To publish a regular release, run
+
+```bash
+yarn prepare-release
+yarn npm-publish
+```
+
+
+### Alpha Release
+
+To publish an alpha release bump version in `package.json` using format:
+
+```
+"version": "xx.yy.zz-alpha.ww",
+```
+
+For example:
+
+```
+"version": "0.8.0-alpha.0",
+```
+
+Make a commit:
+
+```
+git add package.json
+git commit -m "chore: bump alpha release version"
+``
+
+And then run:
+
+```bash
+yarn prepare-release
+yarn npm-publish
+```
+
 ## Examples
 
 See `./test` directory for usage examples.
