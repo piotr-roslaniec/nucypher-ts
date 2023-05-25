@@ -233,7 +233,7 @@ export class DeployedStrategy {
       policy,
       cohortConfig: this.cohort.toObj(),
       bobSecretKeyBytes: this.bobSecretKey.toSecretBytes(),
-      conditionSet: this.conditionSet,
+      conditionSet: this.conditionSet
     };
   }
 }

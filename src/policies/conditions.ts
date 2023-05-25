@@ -55,10 +55,11 @@ export class ConditionSet {
     return true;
   }
 
-  public toList() {
-    return this.conditions.map((cnd) => {
+  public toObj(): { conditions: ({ operator: string } | Record<string, unknown>)[] } {
+    const conditions = this.conditions.map((cnd) => {
       return cnd.toObj();
     });
+    return { conditions };
   }
 
   public static fromList(list: ReadonlyArray<Record<string, string>>) {
@@ -71,7 +72,7 @@ export class ConditionSet {
   }
 
   public toJson() {
-    return JSON.stringify(this.toList());
+    return JSON.stringify(this.toObj());
   }
 
   public static fromJSON(json: string) {

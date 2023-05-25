@@ -222,14 +222,91 @@ describe('Deployed Strategy', () => {
     expect(retrieveCFragsSpy).toHaveBeenCalled();
     expect(decryptedMessage[0]).toEqual(toBytes(plaintext));
   });
+
+  it('reproduce strategy serialization issue', async () => {
+    const aliceProvider = mockWeb3Provider(aliceSecretKey.toSecretBytes());
+    const bobProvider = mockWeb3Provider(bobSecretKey.toSecretBytes());
+    const mockedUrsulas = mockUrsulas().slice(0, 3);
+    const getUrsulasSpy = mockGetUrsulas(mockedUrsulas);
+    const generateKFragsSpy = mockGenerateKFrags();
+    const publishToBlockchainSpy = mockPublishToBlockchain();
+    const makeTreasureMapSpy = mockMakeTreasureMap();
+    const encryptTreasureMapSpy = mockEncryptTreasureMap();
+
+    const conditionSet = new ConditionSet([
+      new Conditions.ERC721Ownership({
+        contractAddress: '0x1e988ba4692e52Bc50b375bcC8585b95c48AaD77',
+        parameters: [3591],
+        chain: 5,
+      }),
+    ]);
+    const testCohort = await Cohort.create(cohortConfig);
+    const testStrategy = Strategy.create(
+      testCohort,
+      conditionSet,
+      aliceSecretKey,
+      bobSecretKey
+    );
+    const testDeployed = await testStrategy.deploy('test', aliceProvider);
+
+    expect(getUrsulasSpy).toHaveBeenCalled();
+    expect(generateKFragsSpy).toHaveBeenCalled();
+    expect(publishToBlockchainSpy).toHaveBeenCalled();
+    expect(encryptTreasureMapSpy).toHaveBeenCalled();
+    expect(makeTreasureMapSpy).toHaveBeenCalled();
+
+    const encrypter = testDeployed.encrypter;
+    const decrypter = testDeployed.decrypter;
+
+    const ownsNFT = new Conditions.ERC721Ownership({
+      contractAddress: '0x1e988ba4692e52Bc50b375bcC8585b95c48AaD77',
+      parameters: [3591],
+      chain: 5,
+    });
+
+    const plaintext = 'this is a secret';
+    const conditions = new ConditionSet([ownsNFT]);
+    encrypter.conditions = conditions;
+    const encryptedMessageKit = encrypter.encryptMessage(plaintext);
+    // Setup mocks for `retrieveAndDecrypt`
+    const getUrsulasSpy2 = mockGetUrsulas(mockedUrsulas);
+    const ursulaAddresses = (
+      makeTreasureMapSpy.mock.calls[0][0] as readonly Ursula[]
+    ).map((u) => u.checksumAddress);
+    const verifiedKFrags = makeTreasureMapSpy.mock
+      .calls[0][1] as readonly VerifiedKeyFrag[];
+    const retrieveCFragsSpy = mockRetrieveCFragsRequest(
+      ursulaAddresses,
+      verifiedKFrags,
+      encryptedMessageKit.capsule
+    );
+
+    const conditionContext = conditions.buildContext(bobProvider);
+    const decryptedMessage = await decrypter.retrieveAndDecrypt(
+      [encryptedMessageKit],
+      conditionContext
+    );
+    expect(getUrsulasSpy2).toHaveBeenCalled();
+    expect(retrieveCFragsSpy).toHaveBeenCalled();
+    expect(decryptedMessage[0]).toEqual(toBytes(plaintext));
+
+    const serialized = testDeployed.toJSON();
+    const deserialized = DeployedStrategy.fromJSON(serialized);
+
+    expect(deserialized.conditionSet!.conditions).toMatchObject(
+      testDeployed.conditionSet!.conditions
+    );
+    expect(deserialized.encrypter.conditions!.conditions).toMatchObject(
+      testDeployed.encrypter.conditions!.conditions
+    );
+  });
 });
 
 describe('tDecDecrypter', () => {
   const importedStrategy = DeployedStrategy.fromJSON(deployedStrategyJSON);
 
   it('can export to JSON', () => {
-    const decrypter = importedStrategy.decrypter;
-    const configJSON = decrypter.toJSON();
+    const configJSON = importedStrategy.decrypter.toJSON();
     expect(configJSON).toEqual(decrypterJSON);
   });
 
