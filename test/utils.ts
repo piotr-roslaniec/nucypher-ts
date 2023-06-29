@@ -541,6 +541,13 @@ export const makeCohort = async (ursulas: Ursula[]) => {
   return cohort;
 };
 
+
+export const mockVerifyRitual = (isValid = true) => {
+  return jest.spyOn(DkgClient, 'verifyRitual').mockImplementation(
+    (_provider, _ritualId) => Promise.resolve(isValid)
+  );
+};
+
 export const mockGetRitualState = (state = DkgRitualState.FINALIZED) => {
   return jest
     .spyOn(DkgCoordinatorAgent, 'getRitualState')
