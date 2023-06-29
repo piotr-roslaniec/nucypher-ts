@@ -19,6 +19,7 @@ import {
   EthereumAddress,
   ferveoEncrypt,
   FerveoVariant,
+  FerveoPublicKey,
   Keypair,
   PublicKey,
   reencrypt,
@@ -552,4 +553,14 @@ export const mockGetRitualState = (state = DkgRitualState.FINALIZED) => {
   return jest
     .spyOn(DkgCoordinatorAgent, 'getRitualState')
     .mockImplementation((_provider, _ritualId) => Promise.resolve(state));
+};
+
+export const mockGetParticipantPublicKey = (pk = fakeFerveoPublicKey()) => {
+  return jest.spyOn(DkgClient, 'getParticipantPublicKey').mockImplementation(
+    (_address) => pk
+  );
+};
+
+export const fakeFerveoPublicKey = (): FerveoPublicKey => {
+  return Keypair.random().publicKey;
 };
