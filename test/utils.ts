@@ -18,8 +18,8 @@ import {
   EncryptedTreasureMap,
   EthereumAddress,
   ferveoEncrypt,
-  FerveoVariant,
   FerveoPublicKey,
+  FerveoVariant,
   Keypair,
   PublicKey,
   reencrypt,
@@ -542,11 +542,10 @@ export const makeCohort = async (ursulas: Ursula[]) => {
   return cohort;
 };
 
-
 export const mockVerifyRitual = (isValid = true) => {
-  return jest.spyOn(DkgClient, 'verifyRitual').mockImplementation(
-    (_provider, _ritualId) => Promise.resolve(isValid)
-  );
+  return jest
+    .spyOn(DkgClient, 'verifyRitual')
+    .mockImplementation((_provider, _ritualId) => Promise.resolve(isValid));
 };
 
 export const mockGetRitualState = (state = DkgRitualState.FINALIZED) => {
@@ -556,9 +555,9 @@ export const mockGetRitualState = (state = DkgRitualState.FINALIZED) => {
 };
 
 export const mockGetParticipantPublicKey = (pk = fakeFerveoPublicKey()) => {
-  return jest.spyOn(DkgClient, 'getParticipantPublicKey').mockImplementation(
-    (_address) => pk
-  );
+  return jest
+    .spyOn(DkgClient, 'getParticipantPublicKey')
+    .mockImplementation((_address) => pk);
 };
 
 export const fakeFerveoPublicKey = (): FerveoPublicKey => {
