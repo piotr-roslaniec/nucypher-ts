@@ -113,7 +113,6 @@ describe('CbdDeployedStrategy', () => {
     // Setup mocks for `retrieveAndDecrypt`
     const { decryptionShares } = fakeTDecFlow({
       ...mockedDkg,
-      variant,
       message: toBytes(message),
       aad,
       ciphertext,
@@ -138,7 +137,6 @@ describe('CbdDeployedStrategy', () => {
       await deployedStrategy.decrypter.retrieveAndDecrypt(
         aliceProvider,
         conditionExpr,
-        variant,
         ciphertext
       );
     expect(getUrsulasSpy).toHaveBeenCalled();

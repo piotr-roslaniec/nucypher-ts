@@ -1,7 +1,7 @@
 import {
   Ciphertext,
+  combineDecryptionSharesSimple,
   Context,
-  DecryptionSharePrecomputed,
   DecryptionShareSimple,
   decryptWithSharedSecret,
   EncryptedThresholdDecryptionRequest,
@@ -19,11 +19,7 @@ import {
   DkgRitualState,
 } from '../agents/coordinator';
 import { ConditionExpression } from '../conditions';
-import {
-  DkgRitual,
-  getCombineDecryptionSharesFunction,
-  getVariantClass,
-} from '../dkg';
+import { DkgRitual } from '../dkg';
 import { PorterClient } from '../porter';
 import { fromJSON, toJSON } from '../utils';
 
@@ -54,19 +50,15 @@ export class ThresholdDecrypter {
   public async retrieveAndDecrypt(
     provider: ethers.providers.Web3Provider,
     conditionExpr: ConditionExpression,
-    variant: FerveoVariant,
     ciphertext: Ciphertext
   ): Promise<Uint8Array> {
     const decryptionShares = await this.retrieve(
       provider,
       conditionExpr,
-      variant,
       ciphertext
     );
 
-    const combineDecryptionSharesFn =
-      getCombineDecryptionSharesFunction(variant);
-    const sharedSecret = combineDecryptionSharesFn(decryptionShares);
+    const sharedSecret = combineDecryptionSharesSimple(decryptionShares);
     return decryptWithSharedSecret(
       ciphertext,
       conditionExpr.asAad(),
@@ -78,9 +70,8 @@ export class ThresholdDecrypter {
   public async retrieve(
     web3Provider: ethers.providers.Web3Provider,
     conditionExpr: ConditionExpression,
-    variant: FerveoVariant,
     ciphertext: Ciphertext
-  ): Promise<DecryptionSharePrecomputed[] | DecryptionShareSimple[]> {
+  ): Promise<DecryptionShareSimple[]> {
     const ritualState = await DkgCoordinatorAgent.getRitualState(
       web3Provider,
       this.ritualId
@@ -98,7 +89,6 @@ export class ThresholdDecrypter {
     const contextStr = await conditionExpr.buildContext(web3Provider).toJson();
     const { sharedSecrets, encryptedRequests } = this.makeDecryptionRequests(
       this.ritualId,
-      variant,
       ciphertext,
       conditionExpr,
       contextStr,
@@ -120,7 +110,6 @@ export class ThresholdDecrypter {
     return this.makeDecryptionShares(
       encryptedResponses,
       sharedSecrets,
-      variant,
       this.ritualId
     );
   }
@@ -128,7 +117,6 @@ export class ThresholdDecrypter {
   private makeDecryptionShares(
     encryptedResponses: Record<string, EncryptedThresholdDecryptionResponse>,
     sessionSharedSecret: Record<string, SessionSharedSecret>,
-    variant: FerveoVariant,
     expectedRitualId: number
   ) {
     const decryptedResponses = Object.entries(encryptedResponses).map(
@@ -142,19 +130,13 @@ export class ThresholdDecrypter {
       );
     }
 
-    const decryptionShares = decryptedResponses.map(
-      ({ decryptionShare }) => decryptionShare
-    );
-
-    const DecryptionShareType = getVariantClass(variant);
-    return decryptionShares.map((share) =>
-      DecryptionShareType.fromBytes(share)
+    return decryptedResponses.map(({ decryptionShare }) =>
+      DecryptionShareSimple.fromBytes(decryptionShare)
     );
   }
 
   private makeDecryptionRequests(
     ritualId: number,
-    variant: FerveoVariant,
     ciphertext: Ciphertext,
     conditionExpr: ConditionExpression,
     contextStr: string,
@@ -165,7 +147,7 @@ export class ThresholdDecrypter {
   } {
     const decryptionRequest = new ThresholdDecryptionRequest(
       ritualId,
-      variant,
+      FerveoVariant.simple,
       ciphertext,
       conditionExpr.toWASMConditions(),
       new Context(contextStr)
